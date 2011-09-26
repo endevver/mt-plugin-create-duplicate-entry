@@ -1,0 +1,24 @@
+id:             createduplicateentry
+key:            createduplicateentry
+name:           'Create Duplicate Entry'
+description:    'Provides a simple interface to duplicate an entry in the same blog or to another blog in the same installation.'
+author_name:    'Endevver, LLC'
+author_link:    http://www.endevver.com/
+version:        1.0.0
+
+callbacks:
+    MT::App::CMS::template_param.edit_entry: CreateDuplicateEntry::Plugin::edit_entry_template_param
+    cms_post_save.entry: CreateDuplicateEntry::Plugin::cms_post_save_entry
+
+settings:
+    create_duplicate_entry_enable:
+        default: 0
+        scope: blog
+    create_duplicate_entry_entry_status:
+        default: 'current_entry_status'
+        scope: blog
+    create_duplicate_entry_categeories:
+        default: 0
+        scope: blog
+
+blog_config_template: 'tmpl/blog_config.mtml'
