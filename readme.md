@@ -40,7 +40,7 @@ Be sure that Create Duplicate Entry has been enabled (in plugin Settings) for th
 
 Find an existing entry you'd like to duplicate. On the Edit Entry screen in the Publishing area of the right sidebar is a new field: Duplicate Entry To. This field provides a drop-down selector that lists all blogs the user has permission to post in. Select the blog you'd like to duplicate the entry to and Save.
 
-The entry will be duplicated to the blog you have selected (whether you've selected the current blog or another blog in the installation), and will be published if necessary.
+The entry will be duplicated to the blog you have selected (whether you've selected the current blog or another blog in the installation), and will be published if necessary. The entry duplication is also noted in the Activity Log, noting both the original and destination blogs.
 
 
 # License
