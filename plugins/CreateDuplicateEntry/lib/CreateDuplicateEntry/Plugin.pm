@@ -142,6 +142,17 @@ sub _create_entry {
     my $app    = MT->instance;
     my $plugin = MT->component('createduplicateentry');
 
+    # Check that the destination blog ID is valid. If not, give up.
+    if ( !MT->model('blog')->exist($dest_blog_id) ) {
+        MT->log({
+            blog_id => $entry->blog_id,
+            level   => MT->model('log')->ERROR(),
+            message => $plugin->name . ': the destination blog ID "' 
+                . $dest_blog_id . '" is invalid; Quitting.',
+        });
+        return;
+    }
+
     # Create an array of valid field names. This array is used to duplicate
     # content to new fields at the selected blog ID. Standard fields are
     # below, minus the `basename`, which is recalculated to be unique for each
