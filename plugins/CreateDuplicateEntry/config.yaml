@@ -4,7 +4,7 @@ name:           'Create Duplicate Entry'
 description:    'Provides a simple interface to duplicate an entry in the same blog or to another blog in the same installation.'
 author_name:    'Endevver, LLC'
 author_link:    http://www.endevver.com/
-version:        1.0.0
+version:        1.0.1
 
 callbacks:
     MT::App::CMS::template_param.edit_entry: CreateDuplicateEntry::Plugin::edit_entry_template_param
