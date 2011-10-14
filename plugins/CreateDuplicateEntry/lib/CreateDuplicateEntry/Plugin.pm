@@ -119,7 +119,7 @@ sub cms_post_save_entry {
     # Just give up if there is no blog ID selected to duplicate to.
     return 1 if (
         $selected_blog_id eq '__no_blog_selected__' # "None" was selected
-        && $selected_blog_id !~ /\d+/ # Invalid; a blog ID must be numeric
+        || $selected_blog_id !~ /\d+/ # Invalid; a blog ID must be numeric
     );
 
     # create the new entry!
@@ -143,7 +143,7 @@ sub _create_entry {
     my $plugin = MT->component('createduplicateentry');
 
     # Check that the destination blog ID is valid. If not, give up.
-    if ( !MT->model('blog')->exist($dest_blog_id) ) {
+    if ( !MT->model('blog')->exist({ id => $dest_blog_id}) ) {
         MT->log({
             blog_id => $entry->blog_id,
             level   => MT->model('log')->ERROR(),
