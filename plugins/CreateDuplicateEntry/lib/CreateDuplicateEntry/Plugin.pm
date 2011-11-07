@@ -201,6 +201,13 @@ sub _create_entry {
         $new_entry->status( MT::Entry::HOLD() );
     }
 
+    # If the entry is scheduled, we should copy the authored-on date and time.
+    # Otherwise, just set the date/time when saving the new entry, which could
+    # be later than when the original entry was created.
+    if ( $entry->status == MT::Entry::FUTURE() ) {
+        $new_entry->authored_on( $entry->authored_on );
+    }
+
     # The selected blog ID is where we want the new entry to be added.
     $new_entry->blog_id( $dest_blog_id );
 
