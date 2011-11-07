@@ -163,7 +163,7 @@ sub _create_entry {
     };
 
     # Custom fields should also be copied. Load any custom field for entries
-    # is the current blog ID. Do a lookup where the blog_id is the current
+    # in the current blog ID. Do a lookup where the blog_id is the current
     # blog and the system level (blog_id of "0").
     my @cf_fields = MT->model('field')->load({
         blog_id  => [$entry->blog_id, 0],
@@ -191,7 +191,7 @@ sub _create_entry {
             if ($entry->$field ne '');
     }
 
-    # The new entry's Status may be preferred to be Unpublished base don the
+    # The new entry's Status may be preferred to be Unpublished based on the
     # plugin Settings.
     my $preferred_status = $plugin->get_config_value(
         'create_duplicate_entry_entry_status',
