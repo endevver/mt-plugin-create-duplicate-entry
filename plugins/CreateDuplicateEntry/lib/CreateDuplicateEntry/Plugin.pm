@@ -11,10 +11,10 @@ sub edit_entry_template_param {
     # Give up if this is a new entry; only previously-saved entries can be
     # duplicated.
     return 1 if !$app->param('id');
-    
+
     # Give up if this is a page; we only want to duplciate entries.
     return 1 if $app->param('_type') eq 'page';
-    
+
     # Only show the Duplicate Entry To field if the plugin is enabled on this
     # blog.
     my $plugin = MT->component('createduplicateentry');
@@ -22,6 +22,11 @@ sub edit_entry_template_param {
         'create_duplicate_entry_enable', 
         'blog:' . $app->blog->id,
     );
+
+    # MT4 displays the "Duplicate Entry To" label to the left, while MT5
+    # displays it above.
+    my $label_class = 'field-top-label'
+        if MT->product_version =~ /^5/;
 
     # We want a list of all the blogs the current use can publish to, which
     # we'll use to let the user pick where to duplicate to.
@@ -34,10 +39,11 @@ sub edit_entry_template_param {
     my $create_duplicate_entry_field = $tmpl->createElement(
         'app:setting',
         {
-            id        => 'duplicate-entry-to',
-            label     => 'Duplicate Entry To',
-            hint      => 'Duplicate this entry to another blog.',
-            show_hint => 1,
+            id          => 'duplicate-entry-to',
+            label       => 'Duplicate Entry To',
+            label_class => $label_class,
+            hint        => 'Duplicate this entry to another blog.',
+            show_hint   => 1,
         }
     );
 
@@ -45,8 +51,8 @@ sub edit_entry_template_param {
 <mt:Loop name="permissive_blog_ids">
     <mt:If name="__first__">
         <select name="create_duplicate_entry_in_blog_id"
-            class="full-width"
-            style="width: 186px;">
+            class="full-width text full"
+            <mt:If tag="Version" like='/^4/'>style="width: 186px;"</mt:If>>
             <!-- The "none" option needs a value that is unlikely to be a real blog name -->
             <option value="__no_blog_selected__">None</option>
     </mt:If>

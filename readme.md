@@ -9,6 +9,7 @@ or entries can be marked Unpublished in the duplicated entry.
 # Prerequisites
 
 * Movable Type 4.x
+* Movable Type 5.x
 
 
 # Installation
