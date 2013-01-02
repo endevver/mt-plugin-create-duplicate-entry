@@ -168,24 +168,29 @@ sub _create_entry {
         excerpt keywords status text text_more title 
     };
 
-    # Custom fields should also be copied. Load any custom field for entries
-    # in the current blog ID. Do a lookup where the blog_id is the current
-    # blog and the system level (blog_id of "0").
-    my @cf_fields = MT->model('field')->load({
-        blog_id  => [$entry->blog_id, 0],
-        obj_type => 'entry',
-    });
+    # Custom Fields should also be copied, however first check to see if the
+    # Commercial Pack is available (and therefore if Custom Fields are
+    # available).
+    if ( MT->component('commercial') ) {
+        # Custom fields should also be copied. Load any custom field for entries
+        # in the current blog ID. Do a lookup where the blog_id is the current
+        # blog and the system level (blog_id of "0").
+        my @cf_fields = MT->model('field')->load({
+            blog_id  => [$entry->blog_id, 0],
+            obj_type => 'entry',
+        });
 
-    # Push those loaded custom fields into the fields array but *only* if the
-    # custom field exists in the new blog. Do a lookup where the blog_id is
-    # the current blog and the system level (blog_id of "0").
-    foreach my $cf_field (@cf_fields) {
-        push @fields, 'field.' . $cf_field->basename
-            if MT->model('field')->exist({
-                blog_id  => [$dest_blog_id, 0],
-                obj_type => 'entry',
-                basename => $cf_field->basename,
-            });
+        # Push those loaded custom fields into the fields array but *only* if
+        # the custom field exists in the new blog. Do a lookup where the
+        # blog_id is the current blog and the system level (blog_id of "0").
+        foreach my $cf_field (@cf_fields) {
+            push @fields, 'field.' . $cf_field->basename
+                if MT->model('field')->exist({
+                    blog_id  => [$dest_blog_id, 0],
+                    obj_type => 'entry',
+                    basename => $cf_field->basename,
+                });
+        }
     }
 
     my $new_entry = MT->model('entry')->new();
