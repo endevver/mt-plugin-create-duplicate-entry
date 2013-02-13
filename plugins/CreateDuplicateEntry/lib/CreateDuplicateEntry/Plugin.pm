@@ -220,43 +220,79 @@ sub _create_entry {
         # If there is no destination category, we need to create it by
         # duplicating the original.
         if ( !$dest_cat ) {
-            $dest_cat = MT->model('category')->new();
+            $dest_cat = $orig_cat->clone({
+                except => {           # Don't clone certain existing values
+                    id          => 1, # ...so the ID will be new/unique
+                    created_on  => 1, # ...so the created time will be "now"
+                    modified_by => 1,
+                    modified_on => 1,
+                    parent      => 1,
+                },
+            });
 
-            my @cat_fields = qw {
-                allow_pings author_id class description
-                label ping_urls
-            };
-
-            foreach my $cat_field ( @cat_fields ) {
-                $dest_cat->$cat_field( $orig_cat->$cat_field )
-                    if ($orig_cat->$cat_field ne '');
-            }
             $dest_cat->blog_id( $dest_blog_id );
             $dest_cat->save or die $dest_cat->errstr;
         }
 
         # Create a placement record for the category.
         my $new_placement = MT->model('placement')->new();
-        $new_placement->entry_id( $new_entry->id );
-        $new_placement->blog_id(  $dest_blog_id );
-        $new_placement->is_primary( $placement->is_primary );
-
-        # Now that we have a destination category we can set the category ID.
-        $new_placement->category_id( $dest_cat->id );
-
+        $new_placement->entry_id(    $new_entry->id         );
+        $new_placement->blog_id(     $dest_blog_id          );
+        $new_placement->is_primary(  $placement->is_primary );
+        $new_placement->category_id( $dest_cat->id          );
         $new_placement->save or die $new_placement->errstr;
+
+        # If this category is part of a hierarchy we need to recreate the
+        # hierarchy, too.
+        if ( $orig_cat->parent ) {
+            my $orig_parent_cat = MT->model('category')->load({
+                id => $orig_cat->parent,
+            });
+
+            my $dest_parent_cat;
+            while ( $orig_parent_cat ) {
+                # If there's a parent-child relationship we need to recreate it.
+                # If the child is the just-created category $dest_cat, use that.
+                my $dest_child_cat = defined $dest_parent_cat
+                    ? $dest_parent_cat : $dest_cat;
+
+                $dest_parent_cat = $orig_parent_cat->clone({
+                    except => {           # Don't clone certain existing values
+                        id          => 1, # ...so the ID will be new/unique
+                        created_on  => 1, # ...so the created time will be "now"
+                        modified_by => 1,
+                        modified_on => 1,
+                        parent      => 1,
+                    },
+                });
+
+                $dest_parent_cat->blog_id( $dest_blog_id );
+                $dest_parent_cat->save or die $dest_parent_cat->errstr;
+
+                # Finally, relate the new parent and child categories.
+                $dest_child_cat->parent( $dest_parent_cat->id );
+                $dest_child_cat->save or die $dest_child_cat->errstr;
+
+                # Loook for another category that is the parent of this
+                # category to process next. If none is found, undef
+                # $orig_parent_cat so that the while can be exited.
+                $orig_parent_cat = MT->model('category')->load({
+                    id => $orig_parent_cat->parent,
+                })
+                    or last;
+            }
+        }
+
     }
 
     # Note the new entry that was created in the Activity Log.
-    my $orig_blog = MT->model('blog')->load( $entry->blog_id );
-    my $new_blog  = MT->model('blog')->load( $dest_blog_id );
     MT->log({
         blog_id   => $dest_blog_id,
         level     => MT->model('log')->INFO(),
         author_id => $app->user->id,
         message   => 'Entry "' . $new_entry->title . '" was duplicated from '
             . 'blog "' . $orig_blog->name . '" to blog "'
-            . $new_blog->name . '."',
+            . $dest_blog->name . '."',
     });
 
     # Republish the new, duplicated entry at the destination blog.
@@ -264,7 +300,7 @@ sub _create_entry {
         sub {
             $app->rebuild_entry(
                 Entry             => $new_entry,
-                Blog              => $new_blog,
+                Blog              => $dest_blog,
                 BuildDependencies => 1,
             ) or return $app->publish_error();
         }
