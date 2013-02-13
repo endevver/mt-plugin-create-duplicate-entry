@@ -142,65 +142,25 @@ sub cms_post_save_entry {
 # too, we also need to create Placement records (and create categories if
 # needed).
 sub _create_entry {
-    my ($arg_ref) = @_;
+    my ($arg_ref)    = @_;
     my $entry        = $arg_ref->{entry};
     my $dest_blog_id = $arg_ref->{destination_blog_id};
-    my $app    = MT->instance;
-    my $plugin = MT->component('createduplicateentry');
+    my $app          = MT->instance;
+    my $plugin       = MT->component('createduplicateentry');
 
-    # Check that the destination blog ID is valid. If not, give up.
-    if ( !MT->model('blog')->exist({ id => $dest_blog_id}) ) {
-        MT->log({
-            blog_id => $entry->blog_id,
-            level   => MT->model('log')->ERROR(),
-            message => $plugin->name . ': the destination blog ID "'
-                . $dest_blog_id . '" is invalid; Quitting.',
-        });
-        return;
-    }
+    my $orig_blog = MT->model('blog')->load( $entry->blog_id );
+    my $dest_blog = MT->model('blog')->load( $dest_blog_id   );
 
-    # Create an array of valid field names. This array is used to duplicate
-    # content to new fields at the selected blog ID. Standard fields are
-    # below, minus the `basename`, which is recalculated to be unique for each
-    # blog automatically.
-    my @fields = qw{
-        allow_comments allow_pings author_id convert_breaks
-        excerpt keywords status text text_more title
-    };
-
-    # Custom Fields should also be copied, however first check to see if the
-    # Commercial Pack is available (and therefore if Custom Fields are
-    # available).
-    if ( MT->component('commercial') ) {
-        # Custom fields should also be copied. Load any custom field for entries
-        # in the current blog ID. Do a lookup where the blog_id is the current
-        # blog and the system level (blog_id of "0").
-        my @cf_fields = MT->model('field')->load({
-            blog_id  => [$entry->blog_id, 0],
-            obj_type => 'entry',
-        });
-
-        # Push those loaded custom fields into the fields array but *only* if
-        # the custom field exists in the new blog. Do a lookup where the
-        # blog_id is the current blog and the system level (blog_id of "0").
-        foreach my $cf_field (@cf_fields) {
-            push @fields, 'field.' . $cf_field->basename
-                if MT->model('field')->exist({
-                    blog_id  => [$dest_blog_id, 0],
-                    obj_type => 'entry',
-                    basename => $cf_field->basename,
-                });
-        }
-    }
-
-    my $new_entry = MT->model('entry')->new();
-
-    # Use the existing entry to populate the new entry by copying data to the
-    # new entry.
-    foreach my $field ( @fields ) {
-        $new_entry->$field( $entry->$field )
-            if ($entry->$field ne '');
-    }
+    # Clone the existing entry to create a new one. This takes care of all of
+    # the fields in the `entry` and `entry_meta` datasources.
+    my $new_entry = $entry->clone({
+        except => {           # Don't clone certain existing values
+            id          => 1, # ...so the ID will be new/unique
+            created_on  => 1, # ...so the created time will be "now"
+            modified_by => 1,
+            modified_on => 1,
+        },
+    });
 
     # The new entry's Status may be preferred to be Unpublished based on the
     # plugin Settings.
@@ -210,13 +170,6 @@ sub _create_entry {
     );
     if ($preferred_status eq 'unpublished') {
         $new_entry->status( MT::Entry::HOLD() );
-    }
-
-    # If the entry is scheduled, we should copy the authored-on date and time.
-    # Otherwise, just set the date/time when saving the new entry, which could
-    # be later than when the original entry was created.
-    if ( $entry->status == MT::Entry::FUTURE() ) {
-        $new_entry->authored_on( $entry->authored_on );
     }
 
     # The selected blog ID is where we want the new entry to be added.
@@ -233,10 +186,10 @@ sub _create_entry {
     });
     foreach my $objecttag (@objecttags) {
         my $dest_objecttag = MT->model('objecttag')->new();
-        $dest_objecttag->blog_id( $dest_blog_id );
-        $dest_objecttag->object_datasource( 'entry' );
-        $dest_objecttag->object_id( $new_entry->id );
-        $dest_objecttag->tag_id( $objecttag->tag_id );
+        $dest_objecttag->blog_id(           $dest_blog_id      );
+        $dest_objecttag->object_datasource( 'entry'            );
+        $dest_objecttag->object_id(         $new_entry->id     );
+        $dest_objecttag->tag_id(            $objecttag->tag_id );
         $dest_objecttag->save or die $dest_objecttag->errstr;
     }
 
