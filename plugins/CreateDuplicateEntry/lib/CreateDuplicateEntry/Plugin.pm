@@ -19,7 +19,7 @@ sub edit_entry_template_param {
     # blog.
     my $plugin = MT->component('createduplicateentry');
     return 1 if !$plugin->get_config_value(
-        'create_duplicate_entry_enable', 
+        'create_duplicate_entry_enable',
         'blog:' . $app->blog->id,
     );
 
@@ -153,7 +153,7 @@ sub _create_entry {
         MT->log({
             blog_id => $entry->blog_id,
             level   => MT->model('log')->ERROR(),
-            message => $plugin->name . ': the destination blog ID "' 
+            message => $plugin->name . ': the destination blog ID "'
                 . $dest_blog_id . '" is invalid; Quitting.',
         });
         return;
@@ -165,7 +165,7 @@ sub _create_entry {
     # blog automatically.
     my @fields = qw{
         allow_comments allow_pings author_id convert_breaks
-        excerpt keywords status text text_more title 
+        excerpt keywords status text text_more title
     };
 
     # Custom Fields should also be copied, however first check to see if the
@@ -223,11 +223,11 @@ sub _create_entry {
     $new_entry->blog_id( $dest_blog_id );
 
     $new_entry->save or die $new_entry->errstr;
-    
+
     # Tags need to be copied to the new entry, too. Grab the objecttag records
     # and use those to create new ones pointing to the new entry in the
     # destination blog.
-    my @objecttags = MT->model('objecttag')->load({ 
+    my @objecttags = MT->model('objecttag')->load({
         object_id         => $entry->id,
         object_datasource => 'entry',
     });
@@ -246,7 +246,7 @@ sub _create_entry {
     my @placements;
     if (
         $plugin->get_config_value(
-            'create_duplicate_entry_categories', 
+            'create_duplicate_entry_categories',
             'blog:'.$entry->blog_id
         )
     ) {
@@ -269,9 +269,9 @@ sub _create_entry {
         if ( !$dest_cat ) {
             $dest_cat = MT->model('category')->new();
 
-            my @cat_fields = qw { 
-                allow_pings author_id class description 
-                label ping_urls 
+            my @cat_fields = qw {
+                allow_pings author_id class description
+                label ping_urls
             };
 
             foreach my $cat_field ( @cat_fields ) {
@@ -302,7 +302,7 @@ sub _create_entry {
         level     => MT->model('log')->INFO(),
         author_id => $app->user->id,
         message   => 'Entry "' . $new_entry->title . '" was duplicated from '
-            . 'blog "' . $orig_blog->name . '" to blog "' 
+            . 'blog "' . $orig_blog->name . '" to blog "'
             . $new_blog->name . '."',
     });
 

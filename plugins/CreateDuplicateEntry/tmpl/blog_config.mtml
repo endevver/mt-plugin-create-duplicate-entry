@@ -1,10 +1,10 @@
 <mtapp:Setting
     id="create_duplicate_entry_enable"
     label="Enable">
-    <input type="checkbox" 
-        name="create_duplicate_entry_enable" 
-        id="create_duplicate_entry_enable" 
-        value="1" 
+    <input type="checkbox"
+        name="create_duplicate_entry_enable"
+        id="create_duplicate_entry_enable"
+        value="1"
         <mt:If name="create_duplicate_entry_enable">checked</mt:If> />
     <label for="create_duplicate_entry_enable">
         Enable Create Duplicate Entry on this blog.
@@ -14,30 +14,31 @@
 <mtapp:Setting
     id="create_duplicate_entry_entry_status"
     label="Duplicate Entry's Publish Status">
-    <input type="radio" 
-        name="create_duplicate_entry_entry_status" 
-        id="create_duplicate_entry_entry_status_current_entry_status" 
-        value="current_entry_status" 
+    <input type="radio"
+        name="create_duplicate_entry_entry_status"
+        id="create_duplicate_entry_entry_status_current_entry_status"
+        value="current_entry_status"
         <mt:If name="create_duplicate_entry_entry_status" eq="current_entry_status">checked</mt:If> />
     <label for="create_duplicate_entry_entry_status_current_entry_status">
         Entry's current status
     </label><br />
-    <input type="radio" 
-        name="create_duplicate_entry_entry_status" 
-        id="create_duplicate_entry_entry_status_unpublished" 
-        value="unpublished" 
+    <input type="radio"
+        name="create_duplicate_entry_entry_status"
+        id="create_duplicate_entry_entry_status_unpublished"
+        value="unpublished"
         <mt:If name="create_duplicate_entry_entry_status" eq="unpublished">checked</mt:If> />
     <label for="create_duplicate_entry_entry_status_unpublished">
         Unpublished
     </label>
 </mtapp:Setting>
+
 <mtapp:Setting
     id="create_duplicate_entry_categories"
     label="Duplicate Entry's Categories">
-    <input type="checkbox" 
-        name="create_duplicate_entry_categories" 
-        id="create_duplicate_entry_categories" 
-        value="1" 
+    <input type="checkbox"
+        name="create_duplicate_entry_categories"
+        id="create_duplicate_entry_categories"
+        value="1"
         <mt:If name="create_duplicate_entry_categories">checked</mt:If> />
     <label for="create_duplicate_entry_categories">
         When duplicating an entry, also duplicate the entry's categories.
