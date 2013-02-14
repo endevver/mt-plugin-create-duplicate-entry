@@ -21,5 +21,8 @@ settings:
     create_duplicate_entry_categories:
         default: 0
         scope: blog
+    create_duplicate_entry_assets:
+        default: 0
+        scope: blog
 
 blog_config_template: 'tmpl/blog_config.mtml'

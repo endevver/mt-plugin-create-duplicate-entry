@@ -3,6 +3,9 @@ package CreateDuplicateEntry::Plugin;
 use strict;
 use warnings;
 
+use MT::Util qw( caturl );
+use File::Basename;
+
 # Add the "Duplicate Entry To" field to the Edit Entry screen, and populate it
 # with blogs that the user can duplicate to.
 sub edit_entry_template_param {
@@ -331,6 +334,45 @@ sub _create_entry {
 
     }
 
+    # Copy any associated assets to the new blog if the checkbox in settings has
+    # been enabled.
+    if (
+        $plugin->get_config_value(
+            'create_duplicate_entry_assets',
+            'blog:'.$entry->blog_id
+        )
+    ) {
+        my @objectassets = MT->model('objectasset')->load({
+            object_ds => 'entry',
+            object_id => $entry->id,
+            blog_id   => $entry->blog_id,
+        });
+
+        foreach my $objectasset (@objectassets) {
+            my $dest_asset = _create_dest_asset({
+                objectasset => $objectasset,
+                dest_blog   => $dest_blog,
+                orig_blog   => $orig_blog,
+            });
+            
+            if ($dest_asset) {
+                my $dest_objectasset = $objectasset->clone({
+                    except => {         # Don't clone certain existing values
+                        id        => 1, # ...so the ID will be new/unique
+                        asset_id  => 1,
+                        blog_id   => 1,
+                        object_id => 1,
+                    },
+                });
+                $dest_objectasset->asset_id(  $dest_asset->id );
+                $dest_objectasset->blog_id(   $dest_blog->id  );
+                $dest_objectasset->object_id( $new_entry->id  );
+                $dest_objectasset->save or die $dest_objectasset;
+            }
+        }
+    }
+    
+
     # Note the new entry that was created in the Activity Log.
     MT->log({
         blog_id   => $dest_blog_id,
@@ -360,6 +402,116 @@ sub _create_entry {
     $session->start( time       );
     $session->set(   'new_entry_id', $new_entry->id );
     $session->save or die $session->errstr;
+}
+
+# Create a destination asset from the source.
+sub _create_dest_asset {
+    my ($arg_ref)   = @_;
+    my $objectasset = $arg_ref->{objectasset};
+    my $dest_blog   = $arg_ref->{dest_blog};
+    my $orig_blog   = $arg_ref->{orig_blog};
+    my $dest_fmgr   = $dest_blog->file_mgr;
+    my $orig_fmgr   = $orig_blog->file_mgr;
+
+    # Try to load the origin asset.
+    my $orig_asset = MT->model('asset')->load( $objectasset->asset_id )
+        or MT->error(
+            'Create Duplicate Entry could not find an asset with the ID '
+            . $objectasset->asset_id . '.'
+        );
+
+    # Clone the origin asset to create the destination asset. This copies
+    # everything in the `asset` and `asset_meta` tables.
+    my $dest_asset = $orig_asset->clone({
+        except => {           # Don't clone certain existing values
+            id          => 1, # ...so the ID will be new/unique
+            created_on  => 1, # ...so the created time will be "now"
+            modified_by => 1,
+            modified_on => 1,
+        },
+    });
+
+    $dest_asset->blog_id( $dest_blog->id );
+
+    # In order to create a valid asset cache path, the asset's created_on date
+    # needs to be populated. Get the current day and assemble it for the field.
+    my ($yr, $mo, $day, $hr, $min, $sec) = (localtime(time))[5,4,3,2,1,0 ];
+    $yr  += 1900;
+    $mo  += 1;
+    $mo  = (length($mo) == 1)  ? '0'.$mo  : $mo;
+    $day = (length($day) == 1) ? '0'.$day : $day;
+    $hr  = (length($hr) == 1)  ? '0'.$hr  : $hr;
+    $min = (length($min) == 1) ? '0'.$min : $min;
+    $sec = (length($sec) == 1) ? '0'.$sec : $sec;
+    $dest_asset->created_on("$yr$mo$day$hr$min$sec");
+
+    # Can the source file be found with this new path?
+    die MT->error(
+        'Create Duplicate Entry was unable to find an expected asset at '
+        . 'the file path ' . $orig_asset->file_path . '.'
+    )
+        unless $orig_fmgr->exists( $orig_asset->file_path );
+
+    # Destination: the $cache_path and $cache_url are the dynamically-created
+    # relative destinations such as `assets_c/2013/01/file.txt`. This is where
+    # the new outputs should live.
+    my ( $cache_path, $cache_url );
+    $cache_path = $cache_url = $dest_asset->_make_cache_path( undef, 1 );
+
+    my $dest_file_path = $cache_path;
+    # If the destination path returns "%r" in the beginning, the path is
+    # relative to the blog site path. Replace "%r" with the blog site path so
+    # that the file can be moved to the correct location.
+    my $dest_blog_site_path = $dest_blog->site_path;
+    $dest_file_path =~ s/%r/$dest_blog_site_path/;
+
+    # If the destination path returns "%a" in the beginning, the path is
+    # relative to the blog's archive site path. Replace "%a" with the blog
+    # archive site path so that the file can be moved to the correct location.
+    my $dest_archive_site_path = $dest_blog->archive_path;
+    $dest_file_path =~ s/%a/$dest_archive_site_path/;
+
+    # Grab the filename and extension so that a unique filenamecan be generated
+    # at the destination.
+    my ($filename, undef, $ext) = fileparse($orig_asset->file_path, '\..*?');
+
+    # Check if the destination is empty. That is, we don't want to overwrite
+    # another file. If the $dest exists we need to come up with a new file name;
+    # keep trying to find a new file name until we get something unique.
+    my $counter   = 0;
+    my $dest      = File::Spec->catfile( $dest_file_path, $filename . $ext );
+
+    while ( $dest_fmgr->exists($dest) ) {
+        # A file already exists at the destination. We want to come up with a
+        # unique name for the file so it won't overwrite something else.
+        $dest = File::Spec->catfile(
+            $dest_file_path,
+            $filename . '-' . ++$counter . $ext
+        );
+    }
+
+    # Collect the final filename with counter.
+    $filename .= '-' . $counter
+        if $counter;
+
+    # Finally, the file is prepped and we've got a unique file name for this
+    # asset. Move it!
+    unless ( $dest_fmgr->put($orig_asset->file_path, $dest) ) {
+        die MT->error(
+            "Create Duplicate Entry was unable to copy the file "
+            . $orig_asset->file_path . " to its destination at $dest."
+        );
+    }
+
+    $dest_file_path = File::Spec->catfile( $cache_path, $filename . $ext );
+    $dest_asset->file_path( $dest_file_path                        );
+    $dest_asset->url(       caturl( $cache_url, $filename . $ext ) );
+    $dest_asset->file_name( $filename . $ext                       );
+    $dest_asset->file_ext(  substr($ext, 1)           ); # Strip the leading '.'
+
+    $dest_asset->save or die $dest_asset->errstr;
+    
+    return $dest_asset;
 }
 
 1;

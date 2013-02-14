@@ -44,3 +44,18 @@
         When duplicating an entry, also duplicate the entry's categories.
     </label>
 </mtapp:Setting>
+
+<mtapp:Setting
+    id="create_duplicate_entry_assets"
+    label="Duplicate Entry's Assets">
+    <input type="checkbox"
+        name="create_duplicate_entry_assets"
+        id="create_duplicate_entry_assets"
+        value="1"
+        <mt:If name="create_duplicate_entry_assets">checked</mt:If> />
+    <label for="create_duplicate_entry_assets">
+        When duplicating an entry, also duplicate the associated assets. (Note
+        that this does not update embedded URLs to point to the new duplicate
+        asset.)
+    </label>
+</mtapp:Setting>
