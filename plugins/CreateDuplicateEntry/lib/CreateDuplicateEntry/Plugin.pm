@@ -7,13 +7,14 @@ use warnings;
 # with blogs that the user can duplicate to.
 sub edit_entry_template_param {
     my ($cb, $app, $param, $tmpl) = @_;
+    my $q = $app->can('query') ? $app->query : $app->param;
 
     # Give up if this is a new entry; only previously-saved entries can be
     # duplicated.
-    return 1 if !$app->param('id');
+    return 1 if !$q->param('id');
 
     # Give up if this is a page; we only want to duplciate entries.
-    return 1 if $app->param('_type') eq 'page';
+    return 1 if $q->param('_type') eq 'page';
 
     # Only show the Duplicate Entry To field if the plugin is enabled on this
     # blog.
@@ -67,6 +68,50 @@ HTML
 
     $create_duplicate_entry_field->innerHTML($innerHTML);
     $tmpl->insertAfter($create_duplicate_entry_field, $basename_field);
+
+    # Add a status message indicating if a new entry has been duplicated. Use a
+    # session to find the new entry we just created.
+    my $session = MT->model('session')->load( $q->param('id') );
+    if ($session) {
+        my $duped_entry_id = $session->get('new_entry_id');
+        # We only needed the session to get the new entry ID so remove it now.
+        $session->remove;
+    
+        my $duped_entry = MT->model('entry')->load( $duped_entry_id );
+        if ($duped_entry) {
+            my $duped_blog = MT->model('blog')->load( $duped_entry->blog_id )
+                or $app->error(
+                    'The blog ID ' . $duped_entry->blog_id
+                    . ' could not be loaded.'
+                );
+
+            my $new_entry_edit_url = $app->uri(
+                mode => 'view',
+                args => {
+                    _type   => 'entry',
+                    id      => $duped_entry->id,
+                    blog_id => $duped_blog->id,
+                },
+            );
+
+            my $new_entry = '<a target="_blank" href="' 
+                . $new_entry_edit_url . '">' . $duped_entry->title
+                . ' in the blog ' . $duped_blog->name . '</a>';
+
+            my $duped_msg = $tmpl->createElement(
+                'app:statusmsg',
+                {
+                    id    => 'entry-duplicated',
+                    class => 'success',
+                }
+            );
+            $duped_msg->innerHTML(
+                "The entry has been successfully duplicated: $new_entry."
+            );
+            my $saved_msg = $tmpl->getElementById('saved-changes');
+            $tmpl->insertBefore($duped_msg, $saved_msg);
+        }
+    }
 
     1; # Transformer callbacks should always return true.
 }
@@ -305,6 +350,15 @@ sub _create_entry {
             ) or return $app->publish_error();
         }
     );
+
+    # Use a session to save the duplicated entry ID, so that a status message
+    # linking to the new entry can be displayed on the Edit Entry screen.
+    my $session = MT->model('session')->new();
+    $session->id(    $entry->id );
+    $session->kind(  'DE'       ); # DE for Duplicate Entry
+    $session->start( time       );
+    $session->set(   'new_entry_id', $new_entry->id );
+    $session->save or die $session->errstr;
 }
 
 1;
