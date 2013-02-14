@@ -202,6 +202,7 @@ sub _create_entry {
         except => {           # Don't clone certain existing values
             id          => 1, # ...so the ID will be new/unique
             created_on  => 1, # ...so the created time will be "now"
+            authored_on => 1,
             modified_by => 1,
             modified_on => 1,
         },
