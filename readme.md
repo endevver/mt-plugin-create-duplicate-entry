@@ -26,13 +26,17 @@ entry originating blog and find Tools > Plugins in the navigation menu, then
 Create Duplicate Entry > Settings.
 
 * Create Duplicate Entry can be enabled on a per-blog basis; be sure to check
-the Enable box to use it.
+  the Enable box to use it.
 
 * Your new entry's publish status can be preserved when duplicated, or the
-duplicated entry can always be set to Unpublished.
+  duplicated entry can always be set to Unpublished.
 
 * The originating entry's categories can be optionally preserved in the
-duplicated entry.
+  duplicated entry.
+
+* The originating entry's linked assets can be optionally copied to the
+  duplicated entry's blog. Note that this does not update embedded URLs (in the
+  Entry Body, for example).
 
 
 # Use
@@ -58,4 +62,4 @@ This plugin is licensed under the same terms as Perl itself.
 
 # Copyright
 
-Copyright 2011, Endevver LLC. All rights reserved.
+Copyright 2011-2013, Endevver LLC. All rights reserved.
