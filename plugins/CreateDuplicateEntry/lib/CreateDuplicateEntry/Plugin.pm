@@ -342,6 +342,7 @@ sub _create_entry {
             'blog:'.$entry->blog_id
         )
     ) {
+        # The objectasset records are used in the Entry Asset Manager
         my @objectassets = MT->model('objectasset')->load({
             object_ds => 'entry',
             object_id => $entry->id,
@@ -354,20 +355,23 @@ sub _create_entry {
                 dest_blog   => $dest_blog,
                 orig_blog   => $orig_blog,
             });
-            
-            if ($dest_asset) {
-                my $dest_objectasset = $objectasset->clone({
-                    except => {         # Don't clone certain existing values
-                        id        => 1, # ...so the ID will be new/unique
-                        asset_id  => 1,
-                        blog_id   => 1,
-                        object_id => 1,
-                    },
-                });
-                $dest_objectasset->asset_id(  $dest_asset->id );
-                $dest_objectasset->blog_id(   $dest_blog->id  );
-                $dest_objectasset->object_id( $new_entry->id  );
-                $dest_objectasset->save or die $dest_objectasset;
+
+            next if !$dest_asset;
+
+            # The objectasset association is used by the Entry Assets
+            # Manager.
+            my $dest_objectasset = $objectasset->clone({
+                except => {         # Don't clone certain existing values
+                    id        => 1, # ...so the ID will be new/unique
+                    asset_id  => 1,
+                    blog_id   => 1,
+                    object_id => 1,
+                },
+            });
+            $dest_objectasset->asset_id(  $dest_asset->id );
+            $dest_objectasset->blog_id(   $dest_blog->id  );
+            $dest_objectasset->object_id( $new_entry->id  );
+            $dest_objectasset->save or die $dest_objectasset;
             }
         }
     }
