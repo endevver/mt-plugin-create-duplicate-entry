@@ -372,6 +372,39 @@ sub _create_entry {
             $dest_objectasset->blog_id(   $dest_blog->id  );
             $dest_objectasset->object_id( $new_entry->id  );
             $dest_objectasset->save or die $dest_objectasset;
+
+            # Update Custom Field values that refer to an asset on the original
+            # blog.
+            # Find the Custom Field definition that correlates to this asset
+            # type/class so that we can get the Custom Field basename.
+            my @cf_fields = MT->model('field')->load({
+                blog_id  => [$orig_blog->id, 0],
+                obj_type => 'entry',
+                type     => $dest_asset->class,
+            });
+
+            foreach my $cf_field (@cf_fields) {
+                # Assemble the field basename
+                my $basename = 'field.' . $cf_field->basename;
+
+                # Get the asset ID of the original entry asset.
+                my $orig_asset_id = $new_entry->$basename;
+                $orig_asset_id =~ s/.*mt:asset-id="(\d+)".*/$1/;
+
+                # Check if this asset ID matches the original objectasset
+                # asset ID. If it does match, then this is the field we
+                # want to work with.
+                next if $orig_asset_id != $objectasset->asset_id;
+
+                # This is the right field to work with, so we want to
+                # update the new field to use the new asset. First build
+                # the HTML to the new asset, then set and save it to the
+                # Custom Field.
+                my $text = $dest_asset->as_html();
+                my $html = $dest_asset->enclose($text);
+
+                $new_entry->$basename( $html );
+                $new_entry->save or die $new_entry->errstr;
             }
         }
     }
