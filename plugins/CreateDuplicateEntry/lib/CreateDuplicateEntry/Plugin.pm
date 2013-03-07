@@ -380,7 +380,9 @@ sub _create_entry {
             my @cf_fields = MT->model('field')->load({
                 blog_id  => [$orig_blog->id, 0],
                 obj_type => 'entry',
-                type     => $dest_asset->class,
+                # Include the `asset` type for MT4 compatibility, before the
+                # `file` type was in use.
+                type     => [$dest_asset->class, 'asset'],
             });
 
             foreach my $cf_field (@cf_fields) {
