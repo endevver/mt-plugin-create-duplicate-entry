@@ -305,15 +305,24 @@ sub _create_entry {
                 my $dest_child_cat = defined $dest_parent_cat
                     ? $dest_parent_cat : $dest_cat;
 
-                $dest_parent_cat = $orig_parent_cat->clone({
-                    except => {           # Don't clone certain existing values
-                        id          => 1, # ...so the ID will be new/unique
-                        created_on  => 1, # ...so the created time will be "now"
-                        modified_by => 1,
-                        modified_on => 1,
-                        parent      => 1,
-                    },
+                # Try to load the destination parent category on the
+                # destination blog because it may have been previously created.
+                $dest_parent_cat = MT->model('category')->load({
+                    basename => $orig_parent_cat->basename,
+                    blog_id  => $dest_blog_id,
                 });
+
+                if ( !$dest_parent_cat ) {
+                    $dest_parent_cat = $orig_parent_cat->clone({
+                        except => {           # Don't clone certain existing values
+                            id          => 1, # ...so the ID will be new/unique
+                            created_on  => 1, # ...so the created time will be "now"
+                            modified_by => 1,
+                            modified_on => 1,
+                            parent      => 1,
+                        },
+                    });
+                }
 
                 $dest_parent_cat->blog_id( $dest_blog_id );
                 $dest_parent_cat->save or die $dest_parent_cat->errstr;
