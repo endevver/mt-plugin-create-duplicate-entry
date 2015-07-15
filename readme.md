@@ -8,8 +8,7 @@ or entries can be marked Unpublished in the duplicated entry.
 
 # Prerequisites
 
-* Movable Type 4.x
-* Movable Type 5.x
+* Movable Type 4.x, 5.x, 6.x
 
 
 # Installation

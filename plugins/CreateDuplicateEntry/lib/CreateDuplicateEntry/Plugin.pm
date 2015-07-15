@@ -29,8 +29,7 @@ sub edit_entry_template_param {
 
     # MT4 displays the "Duplicate Entry To" label to the left, while MT5
     # displays it above.
-    my $label_class = 'field-top-label'
-        if MT->product_version =~ /^5/;
+    my $label_class = MT->product_version =~ /^4/ ? 'left-label' : 'top-label';
 
     # We want a list of all the blogs the current use can publish to, which
     # we'll use to let the user pick where to duplicate to.
