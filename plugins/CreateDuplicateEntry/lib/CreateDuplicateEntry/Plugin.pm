@@ -207,6 +207,7 @@ sub _create_entry {
             authored_on => 1,
             modified_by => 1,
             modified_on => 1,
+            basename    => 1, # Not recalculated on save in MT6+.
         },
     });
 
