@@ -261,10 +261,18 @@ sub _create_entry {
 
         # Use the original category basename to determine if the category
         # exists in the destination blog.
-        my $dest_cat = MT->model('category')->load({
-            basename => $orig_cat->basename,
-            blog_id  => $dest_blog_id,
-        });
+        my $dest_cat = {};
+        # If the entry was duplicated to the same blog then we know that the
+        # original category is always the destination category.
+        if ( $entry->blog_id == $new_entry->blog_id ) {
+            $dest_cat = $orig_cat;
+        }
+        else {
+            $dest_cat = MT->model('category')->load({
+                basename => $orig_cat->basename,
+                blog_id  => $dest_blog_id,
+            });
+        }
 
         # If there is no destination category, we need to create it by
         # duplicating the original.
@@ -292,8 +300,12 @@ sub _create_entry {
         $new_placement->save or die $new_placement->errstr;
 
         # If this category is part of a hierarchy we need to recreate the
-        # hierarchy, too.
-        if ( $orig_cat->parent ) {
+        # hierarchy, too. (But not if the new entry is in the same blog as the
+        # current entry, where the hierarchy already exists.)
+        if (
+            $entry->blog_id != $new_entry->blog_id
+            && $orig_cat->parent
+        ) {
             my $orig_parent_cat = MT->model('category')->load({
                 id => $orig_cat->parent,
             });
